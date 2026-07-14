@@ -6,6 +6,10 @@ Material Event Radar is a responsive web app for scanning material company event
 
 It reports what a company disclosed. It does not explain price moves or provide investment advice.
 
+### Filing detail
+
+![Plug Power filing detail with two grouped material-event sections](docs/material-event-radar-detail.png)
+
 ## What it does
 
 - Queries `company_deal_events`, `executive_change`, `debt_issuance`, and `securities_offering` in parallel through the Drillr REST API.

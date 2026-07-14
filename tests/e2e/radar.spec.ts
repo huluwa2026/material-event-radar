@@ -6,7 +6,7 @@ test("desktop radar loads real filings and opens grouped details", async ({ page
     if (message.type() === "error") consoleErrors.push(message.text());
   });
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/?date=2026-07-13", { waitUntil: "networkidle" });
 
   await expect(page.getByRole("heading", { name: "Monday, July 13, 2026" })).toBeVisible();
@@ -18,13 +18,14 @@ test("desktop radar loads real filings and opens grouped details", async ({ page
   const viewport = await page.evaluate(() => ({ width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.width);
 
-  await page.screenshot({ path: "docs/material-event-radar.png", fullPage: true });
+  await page.screenshot({ path: "docs/material-event-radar.png", fullPage: false });
 
   const plugRow = page.locator(".event-row").filter({ hasText: "PLUG" });
   await plugRow.getByRole("button").click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog").locator(".drawer-section")).toHaveCount(2);
   await expect(page.getByText("Merged from 1 structured record")).toHaveCount(2);
+  await page.screenshot({ path: "docs/material-event-radar-detail.png", fullPage: false });
   await page.getByRole("button", { name: "Close details" }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
 
