@@ -1,5 +1,7 @@
 # Material Event Radar
 
+[Open the live radar](https://material-event-radar.vercel.app) · [View the source](https://github.com/huluwa2026/material-event-radar)
+
 ![Material Event Radar showing the July 13, 2026 SEC filing digest](docs/material-event-radar.png)
 
 Material Event Radar is a responsive web app for scanning material company events disclosed in SEC filings. It groups structured event rows by SEC accession, keeps related disclosures together, marks incomplete extraction honestly, and always links back to the original filing.
