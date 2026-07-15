@@ -22,7 +22,14 @@ describe("SEC form parsing", () => {
   it("distinguishes 8-K and 6-K filing pages", () => {
     expect(parseSecFormType("<html><body><b>Form 8-K</b></body></html>")).toBe("8-K");
     expect(parseSecFormType("<table><tr><td>Form 6-K</td></tr></table>")).toBe("6-K");
+    expect(parseSecFormType("<main>Form&nbsp;8-K/A</main>")).toBe("8-K/A");
     expect(parseSecFormType("Form 10-Q")).toBeNull();
+  });
+
+  it("ignores form-like text in non-visible HTML elements", () => {
+    expect(parseSecFormType("<script>Form 8-K</script><style>.x::after{content:'Form 8-K'}</style>")).toBeNull();
+    expect(parseSecFormType("<script>Form 8-K</script foo='bar'><main>Form 6-K</main>")).toBe("6-K");
+    expect(parseSecFormType("<template>Form 8-K</template><p>Form 6-K/A</p>")).toBe("6-K/A");
   });
 });
 

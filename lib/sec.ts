@@ -1,21 +1,23 @@
 import { TtlPromiseCache } from "@/lib/cache";
 import type { MaterialFiling, SecMetadata } from "@/lib/types";
+import { DomUtils, parseDocument } from "htmlparser2";
 
 const cacheSeconds = Number(process.env.SEC_METADATA_CACHE_TTL_SECONDS || 604_800);
 const metadataCache = new TtlPromiseCache<SecMetadata>(Math.max(60, cacheSeconds) * 1000);
 
-function decodeHtml(value: string): string {
-  return value
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&amp;/gi, "&")
-    .replace(/\s+/g, " ");
+function extractVisibleText(value: string): string {
+  const document = parseDocument(value, { decodeEntities: true });
+  const hiddenElements = new Set(["script", "style", "noscript", "template"]);
+
+  for (const element of DomUtils.findAll((candidate) => hiddenElements.has(candidate.name), document.children)) {
+    DomUtils.removeElement(element);
+  }
+
+  return DomUtils.textContent(document).replace(/\s+/g, " ");
 }
 
 export function parseSecFormType(html: string): string | null {
-  const text = decodeHtml(html);
+  const text = extractVisibleText(html);
   const match = text.match(/\bForm\s+(8-K(?:\/A)?|6-K(?:\/A)?)\b/i);
   return match ? match[1].toUpperCase() : null;
 }
