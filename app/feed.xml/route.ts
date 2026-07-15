@@ -63,3 +63,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   });
 }
 
+
+
+export function toJsonFeed(items: Array<{ title: string; url: string; date?: string; summary?: string }>, meta: { title: string; home: string; feed: string }) {
+  return {
+    version: "https://jsonfeed.org/version/1.1",
+    title: meta.title,
+    home_page_url: meta.home,
+    feed_url: meta.feed,
+    items: items.map((it, i) => ({
+      id: it.url || String(i),
+      url: it.url,
+      title: it.title,
+      content_text: it.summary || it.title,
+      date_published: it.date,
+    })),
+  };
+}
