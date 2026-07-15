@@ -222,10 +222,6 @@ export function RadarApp({
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement;
 
-      if (isTyping) {
-        return;
-      }
-
       const modifierPressed = event.ctrlKey || event.metaKey;
 
       // Focus the search field with Ctrl/Cmd + K
@@ -234,6 +230,26 @@ export function RadarApp({
 
         searchInputRef.current?.focus();
         searchInputRef.current?.select();
+        return;
+      }
+
+      // Close filing drawer with Escape
+      if (event.key === "Escape") {
+        if (document.activeElement === searchInputRef.current) {
+            event.preventDefault();
+            searchInputRef.current?.blur();
+            return;
+        }
+    
+        if (selected) {
+            event.preventDefault();
+            closeFiling();
+            return;
+        }
+      }
+
+      // Ignore shortcuts while typing
+      if (isTyping) {
         return;
       }
 
@@ -251,7 +267,7 @@ export function RadarApp({
         return;
       }
 
-      // Open filing details with P
+      // Open filing details with O
       if (event.key.toLowerCase() === "o") {
         event.preventDefault();
 
@@ -263,13 +279,6 @@ export function RadarApp({
 
         return;
       }
-
-      // Close filing drawer with Escape
-      if (event.key === "Escape" && selected) {
-        event.preventDefault();
-        closeFiling();
-        return;
-      }
     };
 
     document.addEventListener("keydown", onKeyDown);
@@ -277,7 +286,14 @@ export function RadarApp({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [moveToPreviousVisibleFiling, moveToNextVisibleFiling, filtered, selected, openFiling, closeFiling]);
+  }, [
+    moveToPreviousVisibleFiling, 
+    moveToNextVisibleFiling, 
+    filtered, 
+    selected, 
+    openFiling, 
+    closeFiling
+  ]);
 
   return (
     <main className="app-shell">
@@ -383,7 +399,7 @@ export function RadarApp({
           <span><kbd>Ctrl</kbd> + <kbd>K</kbd> Search</span>
           <span><kbd>Ctrl</kbd> + <kbd>↑</kbd> Previous</span>
           <span><kbd>Ctrl</kbd> + <kbd>↓</kbd> Next</span>
-          <span><kbd>P</kbd> Details</span>
+          <span><kbd>O</kbd> Details</span>
           <span><kbd>Esc</kbd> Close</span>
         </div>
 
