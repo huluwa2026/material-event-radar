@@ -1,13 +1,23 @@
-# Material Event Radar
+<div align="center">
+  <h1>Material Event Radar</h1>
 
-[![CI](https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml/badge.svg)](https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml)
-[![MIT License](https://img.shields.io/badge/license-MIT-15313f.svg)](LICENSE)
-[![Live](https://img.shields.io/badge/live-Vercel-de5c35.svg)](https://material-event-radar.vercel.app)
+  <p>
+    <a href="https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml/badge.svg"></a>
+    <a href="https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml/badge.svg"></a>
+    <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-15313f.svg"></a>
+    <a href="https://material-event-radar.vercel.app"><img alt="Live on Vercel" src="https://img.shields.io/badge/live-Vercel-de5c35.svg"></a>
+  </p>
 
-**See what companies disclosed—not why prices moved.** Material Event Radar groups structured company events by SEC filing, ranks them transparently, and always links back to the original disclosure.
+  <p><strong>See what companies disclosed—not why prices moved.</strong></p>
+  <p>Material Event Radar groups structured company events by SEC filing, ranks them transparently, and always links back to the original disclosure.</p>
 
-[Open the live radar](https://material-event-radar.vercel.app) · [JSON API](https://material-event-radar.vercel.app/api/v1/events) · [RSS feed](https://material-event-radar.vercel.app/feed.xml) · [Architecture](docs/architecture.md)
+  <p>
+    <a href="https://material-event-radar.vercel.app">Open the live radar</a> ·
+    <a href="https://material-event-radar.vercel.app/api/v1/events">JSON API</a> ·
+    <a href="https://material-event-radar.vercel.app/feed.xml">RSS feed</a> ·
+    <a href="docs/architecture.md">Architecture</a>
+  </p>
+</div>
 
 ![Material Event Radar showing the July 13, 2026 SEC filing digest](docs/material-event-radar.png)
 
