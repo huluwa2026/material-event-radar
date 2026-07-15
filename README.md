@@ -10,6 +10,7 @@
 
   <p><strong>See what companies disclosed—not why prices moved.</strong></p>
   <p>Material Event Radar groups structured company events by SEC filing, ranks them transparently, and always links back to the original disclosure.</p>
+  <p><em>An independent open-source project, not an official Drillr product.</em></p>
 
   <p>
     <a href="https://material-event-radar.vercel.app">Open the live radar</a> ·
@@ -60,6 +61,8 @@ SEC_USER_AGENT=material-event-radar/0.1 your-email@example.com
 
 Create a [Drillr API key](https://drillr.ai/developer/keys). `DRILLR_API_KEY` is read only by the Node.js server; it is never returned by an API route, logged, embedded in HTML, or placed in a `NEXT_PUBLIC_*` variable.
 
+The public hosted instance serves rolling 1/7/30-day windows ending on the latest complete weekday. A self-hosted instance can opt into arbitrary historical dates by setting `RADAR_ALLOW_HISTORICAL_DATES=true`; those requests use that deployment's own server-side key.
+
 ## Product capabilities
 
 - Queries `company_deal_events`, `executive_change`, `debt_issuance`, and `securities_offering` in four parallel requests.
@@ -77,7 +80,7 @@ The versioned read-only API supports identical filters across JSON, CSV, and RSS
 
 ```bash
 curl 'https://material-event-radar.vercel.app/api/v1/events?window=7&category=deal'
-curl -OJL 'https://material-event-radar.vercel.app/api/v1/events?date=2026-07-13&format=csv'
+curl -OJL 'https://material-event-radar.vercel.app/api/v1/events?format=csv'
 ```
 
 Subscribe to a filtered feed:
@@ -96,10 +99,10 @@ Browser
        ├─ 4 parallel Drillr SQL requests
        ├─ accession aggregation and deterministic ranking
        ├─ SEC link/form verification for daily views
-       └─ date/window TTL cache
+       └─ shared persistent date/window cache
 ```
 
-The detailed boundaries and range-query design are documented in [Architecture](docs/architecture.md).
+The hosted routes apply conservative request budgets and reuse a persistent date/window cache. The detailed boundaries and range-query design are documented in [Architecture](docs/architecture.md).
 
 ## Validation
 
@@ -133,8 +136,13 @@ Playwright automatically starts fixture mode, so browser tests do not need produ
 | `RADAR_DATA_MODE` | No | `live` | Set `fixture` for the recorded validation sample |
 | `DRILLR_API_BASE_URL` | No | `https://gateway.drillr.ai` | Drillr REST base URL |
 | `SEC_USER_AGENT` | Recommended | App identifier | Identifies SEC requests responsibly |
-| `EVENT_CACHE_TTL_SECONDS` | No | `900` | Aggregated date/window cache |
+| `EVENT_CACHE_TTL_SECONDS` | No | `3600` | Shared aggregated date/window cache |
 | `SEC_METADATA_CACHE_TTL_SECONDS` | No | `604800` | SEC form/link metadata cache |
+| `RADAR_ALLOW_HISTORICAL_DATES` | No | `false` | Permit arbitrary dates on a self-hosted instance |
+| `PUBLIC_MAX_FILINGS` | No | `100` | Maximum JSON/CSV filings returned per request |
+| `PUBLIC_MAX_RSS_ITEMS` | No | `50` | Maximum RSS items returned per request |
+| `PUBLIC_RATE_LIMIT_PER_MINUTE` | No | `20` | Best-effort per-address minute budget |
+| `PUBLIC_RATE_LIMIT_PER_DAY` | No | `200` | Best-effort per-address daily budget |
 
 ## Contributing and security
 
@@ -146,4 +154,4 @@ Report vulnerabilities privately through the instructions in [SECURITY.md](SECUR
 
 This project reports what a company disclosed. It does not mix news with filings, infer missing financial terms, attribute stock moves, manage portfolios, or make buy/sell recommendations.
 
-MIT licensed. Drillr supplies structured event data; SEC.gov remains the original disclosure source.
+MIT licensed. This independent project accesses structured event data through Drillr; SEC.gov remains the original disclosure source. It is not affiliated with or endorsed by Drillr.

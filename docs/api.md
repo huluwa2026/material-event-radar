@@ -6,7 +6,7 @@ The public API is read-only and versioned at `/api/v1/events`.
 
 | Parameter | Values | Default |
 |---|---|---|
-| `date` | `YYYY-MM-DD`, end date of the window | previous complete weekday |
+| `date` | Hosted instance: latest complete weekday only; self-hosting may opt into `YYYY-MM-DD` history | latest complete weekday |
 | `window` | `1`, `7`, `30` calendar days | `1` |
 | `q` | ticker, company, or headline text | empty |
 | `ticker` | one ticker | empty |
@@ -20,18 +20,18 @@ The public API is read-only and versioned at `/api/v1/events`.
 Example:
 
 ```bash
-curl 'https://material-event-radar.vercel.app/api/v1/events?date=2026-07-13&window=7&category=deal'
+curl 'https://material-event-radar.vercel.app/api/v1/events?window=7&category=deal'
 ```
 
 CSV export:
 
 ```bash
-curl -OJL 'https://material-event-radar.vercel.app/api/v1/events?date=2026-07-13&format=csv'
+curl -OJL 'https://material-event-radar.vercel.app/api/v1/events?format=csv'
 ```
 
 ## JSON shape
 
-The response contains `apiVersion`, normalized `query`, request `meta`, and `data`. `data.filings` contains filing-level records. Every filing includes:
+The response contains `apiVersion`, normalized `query`, request `meta`, and `data`. `meta` reports matched and returned counts plus truncation state. `data.filings` contains up to 100 filing-level records by default. Every filing includes:
 
 - accession, company identity, filing/event dates, SEC URL and form metadata;
 - headline, categories, completeness and structured sections;
@@ -42,13 +42,14 @@ The response is factual research data, not investment advice. Consumers must han
 
 ## Rate limiting and caching
 
-The API currently allows 60 requests per minute per observed client address on each server instance and returns `X-RateLimit-*` headers. Responses use short shared-cache freshness with stale-while-revalidate. This is a lightweight public interface, not an availability-guaranteed commercial API.
+The JSON, CSV, compatibility JSON, and RSS routes each apply the same best-effort budget of 20 requests per minute and 200 requests per day per observed client address. They return minute and daily `X-RateLimit-*` headers. The limiter is deliberately lightweight and remains per server-function instance; the bounded date/window surface and shared persistent data cache prevent arbitrary cache-key churn from repeatedly reaching the upstream source.
+
+The hosted instance accepts only rolling windows ending on its latest complete weekday. A request for another valid date returns `403 historical_date_unavailable`. Self-hosted deployments may set `RADAR_ALLOW_HISTORICAL_DATES=true` and use their own server-side key.
 
 ## RSS
 
-`/feed.xml` accepts the same date, window, ticker, category, form, completeness, and sparse filters. The default window is seven days.
+`/feed.xml` accepts the same window, ticker, category, form, completeness, and sparse filters. The hosted feed uses the latest complete weekday, defaults to seven days, and returns at most 50 items.
 
 ```text
 https://material-event-radar.vercel.app/feed.xml?window=7&tickers=NVDA,AAPL
 ```
-

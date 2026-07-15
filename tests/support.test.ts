@@ -1,10 +1,24 @@
 import { TtlPromiseCache } from "@/lib/cache";
 import { isValidDate, previousCompleteWeekday, shiftDate } from "@/lib/date";
 import { parseSecFormType } from "@/lib/sec";
+import {
+  historicalDatesEnabled,
+  isPublicDateAllowed,
+  normalizePublicPageDate,
+  publicDefaultDate,
+  publicFilingLimit,
+  publicRssItemLimit,
+} from "@/lib/public-access";
 import { filterFilings, filingsToCsv, parseFilters, parseWindow } from "@/lib/public-api";
 import { aggregateEventRows } from "@/lib/aggregate";
+import { checkRateLimit, clearRateLimits, rateLimitHeaders } from "@/lib/rate-limit";
 import { validationRows } from "@/tests/fixtures/validation-2026-07-13";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  clearRateLimits();
+});
 
 describe("date helpers", () => {
   it("validates calendar dates and shifts safely", () => {
@@ -44,6 +58,78 @@ describe("TTL promise cache", () => {
     expect(first).toBe(13);
     expect(second).toBe(13);
     expect(factory).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("hosted access policy", () => {
+  const now = new Date("2026-07-15T12:00:00Z");
+
+  it("keeps the hosted deployment on the latest complete weekday", () => {
+    vi.stubEnv("RADAR_DATA_MODE", "live");
+    vi.stubEnv("RADAR_ALLOW_HISTORICAL_DATES", "false");
+
+    expect(publicDefaultDate(now)).toBe("2026-07-14");
+    expect(isPublicDateAllowed("2026-07-14", now)).toBe(true);
+    expect(isPublicDateAllowed("2026-07-13", now)).toBe(false);
+    expect(isPublicDateAllowed("2026-07-15", now)).toBe(false);
+    expect(normalizePublicPageDate("2026-07-13", now)).toBe("2026-07-14");
+    expect(historicalDatesEnabled()).toBe(false);
+  });
+
+  it("lets self-hosted and fixture deployments opt into historical dates", () => {
+    vi.stubEnv("RADAR_DATA_MODE", "live");
+    vi.stubEnv("RADAR_ALLOW_HISTORICAL_DATES", "true");
+    expect(isPublicDateAllowed("2020-01-02", now)).toBe(true);
+    expect(isPublicDateAllowed("2026-07-15", now)).toBe(false);
+
+    vi.stubEnv("RADAR_ALLOW_HISTORICAL_DATES", "false");
+    vi.stubEnv("RADAR_DATA_MODE", "fixture");
+    expect(publicDefaultDate(now)).toBe("2026-07-13");
+    expect(historicalDatesEnabled()).toBe(true);
+  });
+
+  it("uses bounded export limits with configurable self-host overrides", () => {
+    expect(publicFilingLimit()).toBe(100);
+    expect(publicRssItemLimit()).toBe(50);
+    vi.stubEnv("PUBLIC_MAX_FILINGS", "12");
+    vi.stubEnv("PUBLIC_MAX_RSS_ITEMS", "7");
+    expect(publicFilingLimit()).toBe(12);
+    expect(publicRssItemLimit()).toBe(7);
+  });
+});
+
+describe("public request budget", () => {
+  it("enforces minute and daily counters and emits both header sets", () => {
+    const now = Date.parse("2026-07-15T12:00:00Z");
+    let result = checkRateLimit("203.0.113.1", now);
+    for (let index = 1; index < 20; index += 1) {
+      result = checkRateLimit("203.0.113.1", now);
+    }
+    expect(result.allowed).toBe(true);
+    expect(result.remaining).toBe(0);
+
+    const blocked = checkRateLimit("203.0.113.1", now);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSeconds).toBe(60);
+    expect(rateLimitHeaders(blocked)).toMatchObject({
+      "X-RateLimit-Limit": "20",
+      "X-RateLimit-Daily-Limit": "200",
+    });
+  });
+
+  it("keeps the daily budget after minute windows reset", () => {
+    const now = Date.parse("2026-07-15T12:00:00Z");
+    let result = checkRateLimit("203.0.113.2", now);
+    for (let index = 1; index < 200; index += 1) {
+      const minuteWindow = Math.floor(index / 20);
+      result = checkRateLimit("203.0.113.2", now + minuteWindow * 61_000);
+    }
+    expect(result.allowed).toBe(true);
+    expect(result.dailyRemaining).toBe(0);
+
+    const blocked = checkRateLimit("203.0.113.2", now + 10 * 61_000);
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.retryAfterSeconds).toBeGreaterThan(80_000);
   });
 });
 

@@ -22,6 +22,7 @@ type WindowDays = 1 | 7 | 30;
 
 interface RadarAppProps {
   initialDate: string;
+  allowDateNavigation: boolean;
   initialFiling: string | null;
   initialQuery: string;
   initialCategory: CategoryFilter;
@@ -36,6 +37,7 @@ const WATCHLIST_KEY = "material-event-radar.watchlist.v1";
 
 export function RadarApp({
   initialDate,
+  allowDateNavigation,
   initialFiling,
   initialQuery,
   initialCategory,
@@ -196,20 +198,37 @@ export function RadarApp({
               <p className="brand-subtitle">SEC filing intelligence · factual, grouped, auditable</p>
             </div>
           </div>
-          <div className="source-state"><ShieldCheck size={16} /> SEC-linked data <span>{radar?.source.mode === "fixture" ? "recorded fixture" : "via Drillr"}</span></div>
+          <div className="source-state">
+            <ShieldCheck size={16} /> SEC-linked data
+            {radar?.source.mode === "fixture" ? (
+              <span>recorded fixture</span>
+            ) : (
+              <a href="https://drillr.ai" target="_blank" rel="noreferrer">via Drillr</a>
+            )}
+          </div>
         </div>
       </header>
 
       <section className="research-bar" aria-label="Research date controls">
         <div className="research-bar__inner">
           <div className="date-controls">
-            <button className="square-button" onClick={() => setDate(shiftDate(date, -1))} aria-label="Previous date"><ArrowLeft size={18} /></button>
-            <label className="date-field">
-              <CalendarDays size={17} />
-              <span>Research date</span>
-              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-            </label>
-            <button className="square-button" onClick={() => setDate(shiftDate(date, 1))} aria-label="Next date"><ArrowRight size={18} /></button>
+            {allowDateNavigation ? (
+              <>
+                <button className="square-button" onClick={() => setDate(shiftDate(date, -1))} aria-label="Previous date"><ArrowLeft size={18} /></button>
+                <label className="date-field">
+                  <CalendarDays size={17} />
+                  <span>Research date</span>
+                  <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+                </label>
+                <button className="square-button" onClick={() => setDate(shiftDate(date, 1))} aria-label="Next date"><ArrowRight size={18} /></button>
+              </>
+            ) : (
+              <div className="date-field date-field--fixed">
+                <CalendarDays size={17} />
+                <span>Latest complete date</span>
+                <time dateTime={date}>{date}</time>
+              </div>
+            )}
           </div>
           <div className="research-meta">
             {radar && <span><Database size={14} /> {radar.sourceRowCount} source records</span>}
@@ -279,7 +298,10 @@ export function RadarApp({
           {!loading && !error && filtered.length === 0 && <EmptyState hasData={Boolean(radar?.filings.length)} />}
         </section>
 
-        <footer className="page-footer"><p>Source: structured corporate-event records from Drillr, linked to original SEC filings.</p><p>No price-move attribution. No investment advice. Missing terms are never inferred.</p></footer>
+        <footer className="page-footer">
+          <p>Independent open-source project using structured data accessed through Drillr and linked to original SEC filings.</p>
+          <p>Not affiliated with or endorsed by Drillr. No investment advice. Missing terms are never inferred.</p>
+        </footer>
       </div>
 
       {selected && <FilingDrawer filing={selected} onClose={closeFiling} />}

@@ -71,6 +71,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .brand-subtitle { margin: 4px 0 0; color: #aab8bf; font-size: 11px; letter-spacing: .105em; text-transform: uppercase; }
 .source-state { display: flex; align-items: center; gap: 7px; color: #dbe3e4; font-size: 12px; letter-spacing: .04em; white-space: nowrap; }
 .source-state span { color: #899da7; }
+.source-state a { color: #a8bbc3; text-decoration: underline; text-decoration-color: #536c77; text-underline-offset: 3px; }
+.source-state a:hover { color: #fff; }
 
 .research-bar { background: #e7e8e4; border-bottom: 1px solid var(--line-dark); }
 .research-bar__inner { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
@@ -82,6 +84,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .date-field span { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
 .date-field input { border: 0; background: transparent; color: var(--ink); font-weight: 700; cursor: pointer; }
 .date-field input:focus { outline: none; }
+.date-field--fixed { border: 1px solid var(--line-dark); }
+.date-field time { color: var(--ink); font-size: 13px; font-weight: 700; }
 .research-meta { display: flex; align-items: center; gap: 22px; color: var(--muted); font-size: 12px; }
 .research-meta > span, .text-button { display: flex; align-items: center; gap: 6px; }
 .text-button { border: 0; color: var(--ink-2); background: transparent; padding: 6px 0; cursor: pointer; font-weight: 650; }

@@ -4,12 +4,16 @@ import { shiftDate } from "@/lib/date";
 import { fetchEventRows, fetchEventRowsRange, isFixtureMode, RECORDED_FIXTURE_DATE } from "@/lib/drillr";
 import { attachSecMetadata } from "@/lib/sec";
 import type { CategorizedRows, DailyRadar, EventCategory, MaterialFiling, RadarStats, RawRow } from "@/lib/types";
+import { unstable_cache } from "next/cache";
 
-const cacheSeconds = Number(process.env.EVENT_CACHE_TTL_SECONDS || 900);
+const requestedCacheSeconds = Number(process.env.EVENT_CACHE_TTL_SECONDS || 3600);
+const cacheSeconds = Number.isFinite(requestedCacheSeconds) && requestedCacheSeconds > 0
+  ? requestedCacheSeconds
+  : 3600;
 const radarCache = new TtlPromiseCache<DailyRadar>(Math.max(30, cacheSeconds) * 1000);
 
-function sourceState(): DailyRadar["source"] {
-  return isFixtureMode()
+function sourceState(mode: "fixture" | "live"): DailyRadar["source"] {
+  return mode === "fixture"
     ? { mode: "fixture", provider: "Recorded fixture", fixtureDate: RECORDED_FIXTURE_DATE }
     : { mode: "live", provider: "Drillr" };
 }
@@ -42,52 +46,65 @@ function rowsForDate(rows: CategorizedRows, date: string): CategorizedRows {
   };
 }
 
-export function getDailyRadar(date: string): Promise<DailyRadar> {
-  return radarCache.getOrCreate(date, async () => {
+async function buildRadar(date: string, windowDays: 1 | 7 | 30, mode: "fixture" | "live"): Promise<DailyRadar> {
+  const fixture = mode === "fixture";
+  if (windowDays === 1) {
     const rows = await fetchEventRows(date);
-    const radar = aggregateEventRows(rows, date, isFixtureMode() ? "fixture" : "live");
+    const radar = aggregateEventRows(rows, date, mode);
     return {
       ...radar,
-      filings: isFixtureMode() ? radar.filings : await attachSecMetadata(radar.filings),
+      filings: fixture ? radar.filings : await attachSecMetadata(radar.filings),
     };
-  });
+  }
+
+  const fromDate = shiftDate(date, -(windowDays - 1));
+  const rows = await fetchEventRowsRange(fromDate, date);
+  const dates = new Set<string>();
+  for (const category of Object.keys(rows) as EventCategory[]) {
+    for (const row of rows[category]) {
+      const value = rowDate(row);
+      if (value) dates.add(value);
+    }
+  }
+
+  const filings = [...dates]
+    .sort()
+    .reverse()
+    .flatMap((filingDate) =>
+      aggregateEventRows(rowsForDate(rows, filingDate), filingDate, mode).filings,
+    )
+    .sort((left, right) =>
+      right.filingDate.localeCompare(left.filingDate) ||
+      right.importanceScore - left.importanceScore ||
+      left.ticker.localeCompare(right.ticker),
+    );
+
+  return {
+    date,
+    fromDate,
+    windowDays,
+    fetchedAt: new Date().toISOString(),
+    source: sourceState(mode),
+    sourceRowCount: Object.values(rows).reduce((total, categoryRows) => total + categoryRows.length, 0),
+    filings,
+    stats: statsFor(filings),
+  };
+}
+
+const getPersistedRadar = unstable_cache(
+  buildRadar,
+  ["material-event-radar", "radar-v2"],
+  { revalidate: Math.max(30, cacheSeconds) },
+);
+
+export function getDailyRadar(date: string): Promise<DailyRadar> {
+  return getRadarWindow(date, 1);
 }
 
 export function getRadarWindow(date: string, windowDays: 1 | 7 | 30): Promise<DailyRadar> {
-  if (windowDays === 1) return getDailyRadar(date);
-  const cacheKey = `${date}:${windowDays}`;
-  return radarCache.getOrCreate(cacheKey, async () => {
-    const fromDate = shiftDate(date, -(windowDays - 1));
-    const rows = await fetchEventRowsRange(fromDate, date);
-    const dates = new Set<string>();
-    for (const category of Object.keys(rows) as EventCategory[]) {
-      for (const row of rows[category]) {
-        const value = rowDate(row);
-        if (value) dates.add(value);
-      }
-    }
-
-    const filings = [...dates]
-      .sort()
-      .reverse()
-      .flatMap((filingDate) =>
-        aggregateEventRows(rowsForDate(rows, filingDate), filingDate, isFixtureMode() ? "fixture" : "live").filings,
-      )
-      .sort((left, right) =>
-        right.filingDate.localeCompare(left.filingDate) ||
-        right.importanceScore - left.importanceScore ||
-        left.ticker.localeCompare(right.ticker),
-      );
-
-    return {
-      date,
-      fromDate,
-      windowDays,
-      fetchedAt: new Date().toISOString(),
-      source: sourceState(),
-      sourceRowCount: Object.values(rows).reduce((total, categoryRows) => total + categoryRows.length, 0),
-      filings,
-      stats: statsFor(filings),
-    };
+  const mode = isFixtureMode() ? "fixture" : "live";
+  const cacheKey = `${mode}:${date}:${windowDays}`;
+  return radarCache.getOrCreate(cacheKey, () => {
+    return getPersistedRadar(date, windowDays, mode);
   });
 }
