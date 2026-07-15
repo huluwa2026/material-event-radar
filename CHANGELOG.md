@@ -6,16 +6,15 @@ The project follows [Semantic Versioning](https://semver.org/) for tagged releas
 
 ## [Unreleased]
 
-### Added
-
-- GitHub community, security, CI, dependency update, CodeQL, and production smoke-test configuration.
-- Recorded-fixture development mode and contributor documentation.
-- Shareable filter state, multi-day timeline, local watchlist, audit explanations, feeds, exports, and versioned API.
-
 ## [0.1.0] - 2026-07-15
 
 ### Added
 
+- GitHub community, security, CI, dependency update, CodeQL, production smoke-test, and protected-main configuration.
+- Recorded-fixture development mode and contributor documentation.
+- Shareable filter state, 7/30-day timeline, local watchlist, and visible data freshness state.
+- Deterministic score explanations and per-section source-table provenance.
+- Filterable JSON/CSV API and RSS feed.
 - Responsive SEC material-event radar backed by Drillr structured data.
 - Filing-level aggregation across deals, executive changes, debt, and securities offerings.
 - Deterministic importance ranking, completeness states, SEC verification, search, filters, and filing detail drawer.
