@@ -1,0 +1,51 @@
+name: Bug report
+description: Report a reproducible problem with the radar, API, or documentation.
+title: "[Bug]: "
+labels: [bug, triage]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve Material Event Radar. Do not include API keys or private data.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include the filing date, ticker, URL, and the behavior you observed.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser or environment
+      placeholder: Chrome 138 on macOS 15, or Node.js 20.19
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots and redacted logs are welcome.
+

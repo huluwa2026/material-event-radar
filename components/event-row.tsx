@@ -1,7 +1,7 @@
 "use client";
 
 import type { EventCategory, MaterialFiling } from "@/lib/types";
-import { ArrowUpRight, ChevronRight, CircleAlert, Layers3 } from "lucide-react";
+import { ArrowUpRight, Bookmark, ChevronRight, CircleAlert, Layers3 } from "lucide-react";
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
   deal: "Deal",
@@ -19,7 +19,17 @@ function formatAmount(amount?: number, currency = "USD"): string | null {
   return `${prefix}${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount)}`;
 }
 
-export function EventRow({ filing, onOpen }: { filing: MaterialFiling; onOpen: () => void }) {
+export function EventRow({
+  filing,
+  watched,
+  onToggleWatch,
+  onOpen,
+}: {
+  filing: MaterialFiling;
+  watched: boolean;
+  onToggleWatch: () => void;
+  onOpen: () => void;
+}) {
   const categories = filing.categories;
   const facts = filing.sections.flatMap((section) => section.facts).slice(0, 3);
   const amount = formatAmount(filing.primaryAmount, filing.currency);
@@ -61,6 +71,16 @@ export function EventRow({ filing, onOpen }: { filing: MaterialFiling; onOpen: (
           </span>
           <ChevronRight className="row-chevron" size={20} aria-hidden="true" />
         </div>
+      </button>
+
+      <button
+        className="watch-button"
+        type="button"
+        aria-label={`${watched ? "Remove" : "Add"} ${filing.ticker} ${watched ? "from" : "to"} watchlist`}
+        aria-pressed={watched}
+        onClick={onToggleWatch}
+      >
+        <Bookmark size={15} fill={watched ? "currentColor" : "none"} />
       </button>
 
       <a

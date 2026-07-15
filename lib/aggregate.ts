@@ -6,7 +6,9 @@ import type {
   MaterialEventSection,
   MaterialFiling,
   MonetaryValue,
+  RankingBreakdown,
   RawRow,
+  DataSourceMode,
 } from "@/lib/types";
 
 interface NormalizedRecord {
@@ -24,6 +26,12 @@ interface NormalizedRecord {
 }
 
 const CORE_EXECUTIVE = /chief|ceo|cfo|coo|president|chair/i;
+const SOURCE_TABLES: Record<EventCategory, string> = {
+  deal: "company_deal_events",
+  executive: "executive_change",
+  debt: "debt_issuance",
+  offering: "securities_offering",
+};
 
 function asText(value: unknown): string | null {
   if (typeof value !== "string") return value == null ? null : String(value);
@@ -261,6 +269,7 @@ function buildDealSections(records: NormalizedRecord[]): MaterialEventSection[] 
       id: `deal-${index + 1}`,
       category: "deal",
       sourceCategories: ["deal"],
+      sourceTables: [SOURCE_TABLES.deal],
       headline: dealHeadline(rows, primary),
       facts,
       amount: primary?.amount ?? undefined,
@@ -311,6 +320,7 @@ function buildExecutiveSection(records: NormalizedRecord[]): MaterialEventSectio
     id: "executive-1",
     category: "executive",
     sourceCategories: ["executive"],
+    sourceTables: [SOURCE_TABLES.executive],
     headline,
     facts,
     itemCode: unique(records.map((record) => record.itemCode)).join(", ") || undefined,
@@ -336,6 +346,7 @@ function buildDebtSection(records: NormalizedRecord[]): MaterialEventSection {
     id: "debt-1",
     category: "debt",
     sourceCategories: ["debt"],
+    sourceTables: [SOURCE_TABLES.debt],
     headline: primary?.amount
       ? `Debt financing · ${formatMoney(primary.amount, primary.currency ?? "USD")}`
       : "Debt terms disclosed",
@@ -392,6 +403,7 @@ function buildOfferingSection(records: NormalizedRecord[]): MaterialEventSection
     id: "offering-1",
     category: "offering",
     sourceCategories: ["offering"],
+    sourceTables: [SOURCE_TABLES.offering],
     headline:
       substance === 0
         ? "Offering disclosed; terms unavailable"
@@ -416,6 +428,7 @@ function mergeComplementarySections(sections: MaterialEventSection[]): MaterialE
     ...section,
     facts: [...section.facts],
     sourceCategories: [...section.sourceCategories],
+    sourceTables: [...section.sourceTables],
   }));
 
   for (const category of ["debt", "offering"] as const) {
@@ -430,6 +443,7 @@ function mergeComplementarySections(sections: MaterialEventSection[]): MaterialE
 
       target.facts = unique([...target.facts, ...candidate.facts]).slice(0, 10);
       target.sourceCategories = [...new Set([...target.sourceCategories, ...candidate.sourceCategories])];
+      target.sourceTables = [...new Set([...target.sourceTables, ...candidate.sourceTables])];
       target.rawRowCount += candidate.rawRowCount;
       target.itemCode = unique([target.itemCode, candidate.itemCode]).join(", ") || undefined;
       result.splice(index, 1);
@@ -453,25 +467,52 @@ function completenessFor(sections: MaterialEventSection[], records: NormalizedRe
   return "sparse";
 }
 
-function importanceFor(sections: MaterialEventSection[], completeness: Completeness): number {
-  let score = 0;
+function importanceFor(sections: MaterialEventSection[], completeness: Completeness): RankingBreakdown {
+  let eventClass = 0;
+  let disclosedValue = 0;
   for (const section of sections) {
-    let sectionScore = section.category === "deal" ? 72 : section.category === "debt" ? 62 : section.category === "offering" ? 56 : 48;
-    if (section.category === "executive" && CORE_EXECUTIVE.test(section.headline)) sectionScore = 66;
-    if (section.amount && section.amount > 0) sectionScore += Math.min(24, Math.log10(section.amount) * 2.6);
-    score = Math.max(score, sectionScore);
+    let classScore = section.category === "deal" ? 72 : section.category === "debt" ? 62 : section.category === "offering" ? 56 : 48;
+    if (section.category === "executive" && CORE_EXECUTIVE.test(section.headline)) classScore = 66;
+    const valueScore = section.amount && section.amount > 0 ? Math.min(24, Math.log10(section.amount) * 2.6) : 0;
+    if (classScore + valueScore > eventClass + disclosedValue) {
+      eventClass = classScore;
+      disclosedValue = valueScore;
+    }
   }
-  score += Math.min(12, Math.max(0, sections.length - 1) * 4);
-  if (completeness === "partial") score -= 5;
-  if (completeness === "sparse") score -= 80;
-  return Math.round(score * 10) / 10;
+  const multiSection = Math.min(12, Math.max(0, sections.length - 1) * 4);
+  const completenessScore = completeness === "partial" ? -5 : completeness === "sparse" ? -80 : 0;
+  const total = Math.round((eventClass + disclosedValue + multiSection + completenessScore) * 10) / 10;
+  const categoryLabel = sections.find((section) => {
+    let classScore = section.category === "deal" ? 72 : section.category === "debt" ? 62 : section.category === "offering" ? 56 : 48;
+    if (section.category === "executive" && CORE_EXECUTIVE.test(section.headline)) classScore = 66;
+    return classScore === eventClass;
+  })?.category;
+  const reasons = [
+    categoryLabel ? `${humanize(categoryLabel)} event class contributes ${eventClass} points.` : null,
+    disclosedValue > 0 ? `A disclosed monetary value contributes ${Math.round(disclosedValue * 10) / 10} points.` : null,
+    multiSection > 0 ? `${sections.length} distinct sections contribute ${multiSection} points.` : null,
+    completenessScore < 0 ? `${humanize(completeness)} extraction applies a ${Math.abs(completenessScore)} point penalty.` : "Complete structured terms receive no penalty.",
+  ].filter((reason): reason is string => Boolean(reason));
+
+  return {
+    eventClass,
+    disclosedValue: Math.round(disclosedValue * 10) / 10,
+    multiSection,
+    completeness: completenessScore,
+    total,
+    reasons,
+  };
 }
 
 function chooseEventDate(records: NormalizedRecord[]): string | null {
   return records.map((record) => record.eventDate).filter((date): date is string => Boolean(date)).sort().at(-1) ?? null;
 }
 
-export function aggregateEventRows(rows: CategorizedRows, date: string): DailyRadar {
+export function aggregateEventRows(
+  rows: CategorizedRows,
+  date: string,
+  sourceMode: DataSourceMode = "live",
+): DailyRadar {
   const normalized = normalizeRows(rows);
   const groups = new Map<string, NormalizedRecord[]>();
   for (const record of normalized) {
@@ -506,6 +547,7 @@ export function aggregateEventRows(rows: CategorizedRows, date: string): DailyRa
       const rank: Record<EventCategory, number> = { deal: 4, debt: 3, executive: 2, offering: 1 };
       return rank[b.category] - rank[a.category] || (b.amount ?? 0) - (a.amount ?? 0);
     })[0];
+    const ranking = importanceFor(sections, completeness);
 
     filings.push({
       accession,
@@ -517,7 +559,8 @@ export function aggregateEventRows(rows: CategorizedRows, date: string): DailyRa
       eventDate: chooseEventDate(records),
       secUrl: buildSecUrl(first.cik, accession),
       secAccessible: null,
-      importanceScore: importanceFor(sections, completeness),
+      importanceScore: ranking.total,
+      ranking,
       completeness,
       headline: sections.length > 2 ? `${sections.length} material disclosures in one filing` : topSection?.headline || "Material event",
       primaryAmount: primary?.amount,
@@ -535,7 +578,12 @@ export function aggregateEventRows(rows: CategorizedRows, date: string): DailyRa
 
   return {
     date,
+    fromDate: date,
+    windowDays: 1,
     fetchedAt: new Date().toISOString(),
+    source: sourceMode === "fixture"
+      ? { mode: "fixture", provider: "Recorded fixture", fixtureDate: "2026-07-13" }
+      : { mode: "live", provider: "Drillr" },
     sourceRowCount: normalized.length,
     filings,
     stats: {

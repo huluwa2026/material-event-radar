@@ -17,6 +17,9 @@ describe("filing aggregation", () => {
     expect(plug).toBeDefined();
     expect(plug?.sections.filter((section) => section.category === "deal")).toHaveLength(2);
     expect(plug?.rawRowCount).toBe(2);
+    expect(plug?.ranking.total).toBe(plug?.importanceScore);
+    expect(plug?.ranking.reasons.join(" ")).toContain("disclosed monetary value");
+    expect(plug?.sections[0].sourceTables).toContain("company_deal_events");
   });
 
   it("collapses nine DAIO records while retaining three event categories", () => {
@@ -25,6 +28,9 @@ describe("filing aggregation", () => {
     expect(daio?.categories).toEqual(expect.arrayContaining(["deal", "executive", "offering"]));
     expect(daio?.sections).toHaveLength(3);
     expect(daio?.sections.find((section) => section.sourceCategories.includes("offering"))?.category).toBe("deal");
+    expect(daio?.sections.find((section) => section.sourceCategories.includes("offering"))?.sourceTables).toEqual(
+      expect.arrayContaining(["company_deal_events", "securities_offering"]),
+    );
   });
 
   it("merges NABL departure and appointment into one transition", () => {

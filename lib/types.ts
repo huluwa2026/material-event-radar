@@ -2,6 +2,7 @@ export const EVENT_CATEGORIES = ["deal", "executive", "debt", "offering"] as con
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
 export type Completeness = "complete" | "partial" | "sparse";
+export type DataSourceMode = "live" | "fixture";
 
 export interface MonetaryValue {
   raw?: string | null;
@@ -23,12 +24,22 @@ export interface MaterialEventSection {
   id: string;
   category: EventCategory;
   sourceCategories: EventCategory[];
+  sourceTables: string[];
   headline: string;
   facts: string[];
   amount?: number;
   currency?: string;
   itemCode?: string;
   rawRowCount: number;
+}
+
+export interface RankingBreakdown {
+  eventClass: number;
+  disclosedValue: number;
+  multiSection: number;
+  completeness: number;
+  total: number;
+  reasons: string[];
 }
 
 export interface MaterialFiling {
@@ -42,6 +53,7 @@ export interface MaterialFiling {
   secUrl: string;
   secAccessible: boolean | null;
   importanceScore: number;
+  ranking: RankingBreakdown;
   completeness: Completeness;
   headline: string;
   primaryAmount?: number;
@@ -63,7 +75,14 @@ export interface RadarStats {
 
 export interface DailyRadar {
   date: string;
+  fromDate: string;
+  windowDays: 1 | 7 | 30;
   fetchedAt: string;
+  source: {
+    mode: DataSourceMode;
+    provider: "Drillr" | "Recorded fixture";
+    fixtureDate?: string;
+  };
   sourceRowCount: number;
   filings: MaterialFiling[];
   stats: RadarStats;

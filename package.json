@@ -5,6 +5,7 @@
   "description": "An auditable daily radar for material company events disclosed in SEC filings.",
   "scripts": {
     "dev": "next dev",
+    "dev:fixture": "RADAR_DATA_MODE=fixture next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

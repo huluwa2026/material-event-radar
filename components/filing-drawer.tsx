@@ -1,7 +1,7 @@
 "use client";
 
 import type { EventCategory, MaterialFiling } from "@/lib/types";
-import { ArrowUpRight, CheckCircle2, CircleAlert, FileText, X } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, CircleAlert, FileText, Gauge, Table2, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -59,6 +59,21 @@ export function FilingDrawer({ filing, onClose }: { filing: MaterialFiling; onCl
           </div>
         </div>
 
+        <section className="audit-panel" aria-labelledby="audit-heading">
+          <div className="audit-panel__heading">
+            <div><Gauge size={17} /><span id="audit-heading">Why this filing ranks here</span></div>
+            <strong>{Math.round(filing.ranking.total)}</strong>
+          </div>
+          <div className="score-breakdown">
+            <div><span>Event class</span><b>+{filing.ranking.eventClass}</b></div>
+            <div><span>Disclosed value</span><b>+{filing.ranking.disclosedValue}</b></div>
+            <div><span>Multiple sections</span><b>+{filing.ranking.multiSection}</b></div>
+            <div><span>Completeness</span><b>{filing.ranking.completeness}</b></div>
+          </div>
+          <ul>{filing.ranking.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+          <p>The deterministic score uses disclosed structure only; it does not predict market impact.</p>
+        </section>
+
         <div className="drawer-sections">
           {filing.sections.map((section, index) => (
             <section className={`drawer-section drawer-section--${section.category}`} key={section.id}>
@@ -72,7 +87,11 @@ export function FilingDrawer({ filing, onClose }: { filing: MaterialFiling; onCl
                 <ul>
                   {section.facts.map((fact) => <li key={fact}>{fact}</li>)}
                 </ul>
-                <p className="raw-provenance">Merged from {section.rawRowCount} structured {section.rawRowCount === 1 ? "record" : "records"}</p>
+                <div className="raw-provenance">
+                  <Table2 size={13} />
+                  <span>Merged from {section.rawRowCount} structured {section.rawRowCount === 1 ? "record" : "records"}</span>
+                  {section.sourceTables.map((table) => <code key={table}>{table}</code>)}
+                </div>
               </div>
             </section>
           ))}

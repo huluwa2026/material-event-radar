@@ -1,36 +1,42 @@
 # Material Event Radar
 
-[Open the live radar](https://material-event-radar.vercel.app) · [View the source](https://github.com/huluwa2026/material-event-radar)
+[![CI](https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml/badge.svg)](https://github.com/huluwa2026/material-event-radar/actions/workflows/codeql.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-15313f.svg)](LICENSE)
+[![Live](https://img.shields.io/badge/live-Vercel-de5c35.svg)](https://material-event-radar.vercel.app)
+
+**See what companies disclosed—not why prices moved.** Material Event Radar groups structured company events by SEC filing, ranks them transparently, and always links back to the original disclosure.
+
+[Open the live radar](https://material-event-radar.vercel.app) · [JSON API](https://material-event-radar.vercel.app/api/v1/events) · [RSS feed](https://material-event-radar.vercel.app/feed.xml) · [Architecture](docs/architecture.md)
 
 ![Material Event Radar showing the July 13, 2026 SEC filing digest](docs/material-event-radar.png)
 
-Material Event Radar is a responsive web app for scanning material company events disclosed in SEC filings. It groups structured event rows by SEC accession, keeps related disclosures together, marks incomplete extraction honestly, and always links back to the original filing.
+## Why it is different
 
-It reports what a company disclosed. It does not explain price moves or provide investment advice.
+- **Filing first:** collapses duplicate source rows by SEC accession while preserving distinct matters as sections.
+- **Auditable:** exposes source tables, merged row counts, completeness, score components, and the original SEC filing.
+- **Honest about gaps:** sparse extraction is hidden by default and missing terms are never inferred.
+- **Built for scanning:** daily and 7/30-day timelines, shareable filters, local watchlists, and responsive filing dossiers.
+- **Open data surfaces:** filtered JSON, CSV, and RSS use the same factual aggregation model as the interface.
 
-### Filing detail
+### Filing audit view
 
-![Plug Power filing detail with two grouped material-event sections](docs/material-event-radar-detail.png)
+![Plug Power filing detail with deterministic score and source provenance](docs/material-event-radar-detail.png)
 
-## What it does
+## Try it locally without credentials
 
-- Queries `company_deal_events`, `executive_change`, `debt_issuance`, and `securities_offering` in parallel through the Drillr REST API.
-- Excludes synthetic `news_*` accessions from the filing feed.
-- Joins `company_snapshot` inside those four queries for company names and CIKs.
-- Collapses duplicate rows into one filing and preserves distinct matters as sections.
-- Merges complementary deal, debt, and offering records when they describe the same disclosed amount.
-- Combines related leadership departures and appointments into a transition.
-- Verifies the SEC index page and reads the actual form type, including 6-K.
-- Ranks filings with deterministic rules based on event class, disclosed value, and completeness.
-- Supports date navigation, ticker/company search, category filters, form filters, and a filing-detail drawer.
-- Keeps sparse events out of the default feed without inventing missing terms.
-
-## Run locally
-
-Requirements: Node.js 20.9 or newer and a [Drillr API key](https://drillr.ai/developer/keys).
+Requirements: Node.js 20.9 or newer.
 
 ```bash
 npm install
+npm run dev:fixture
+```
+
+Open [http://localhost:3000/?date=2026-07-13](http://localhost:3000/?date=2026-07-13). Fixture mode uses the real recorded July 13, 2026 validation sample and labels it clearly as historical data. It never pretends to be live.
+
+## Run with live Drillr data
+
+```bash
 cp .env.example .env.local
 npm run dev
 ```
@@ -42,27 +48,52 @@ DRILLR_API_KEY=drl_replace_me
 SEC_USER_AGENT=material-event-radar/0.1 your-email@example.com
 ```
 
-Open [http://localhost:3000](http://localhost:3000). A specific filing day can be shared as `/?date=2026-07-13` and an open filing as `/?date=2026-07-13&filing=<accession>`.
+Create a [Drillr API key](https://drillr.ai/developer/keys). `DRILLR_API_KEY` is read only by the Node.js server; it is never returned by an API route, logged, embedded in HTML, or placed in a `NEXT_PUBLIC_*` variable.
 
-The app does not fall back to fabricated demo data. A missing API key or upstream failure is shown as an explicit data-unavailable state.
+## Product capabilities
+
+- Queries `company_deal_events`, `executive_change`, `debt_issuance`, and `securities_offering` in four parallel requests.
+- Excludes synthetic `news_*` accessions and joins company identity inside the queries.
+- Merges complementary deals, debt, offerings, departures, and appointments without discarding distinct events.
+- Supports 1, 7, and 30 calendar-day views with one bounded range query per source table.
+- Persists ticker watchlists only in browser local storage; no account or tracking is required.
+- Keeps search, category, form, completeness, window, watchlist mode, and open filing in shareable URLs.
+- Provides deterministic importance-score explanations and per-section source-table provenance.
+- Displays source mode, refresh time, row counts, extraction completeness, and SEC verification state.
+
+## API, CSV, and RSS
+
+The versioned read-only API supports identical filters across JSON, CSV, and RSS:
+
+```bash
+curl 'https://material-event-radar.vercel.app/api/v1/events?window=7&category=deal'
+curl -OJL 'https://material-event-radar.vercel.app/api/v1/events?date=2026-07-13&format=csv'
+```
+
+Subscribe to a filtered feed:
+
+```text
+https://material-event-radar.vercel.app/feed.xml?window=7&tickers=NVDA,AAPL
+```
+
+See [Public API and feeds](docs/api.md) for parameters, response shape, rate limits, and caching behavior.
 
 ## Data flow
 
 ```text
 Browser
-  └─ GET /api/events?date=YYYY-MM-DD
-       └─ Next.js server
-            ├─ 4 parallel Drillr run_sql requests
-            ├─ accession aggregation and deterministic ranking
-            ├─ SEC form/link verification
-            └─ date-keyed in-memory TTL cache
+  └─ Next.js server API
+       ├─ 4 parallel Drillr SQL requests
+       ├─ accession aggregation and deterministic ranking
+       ├─ SEC link/form verification for daily views
+       └─ date/window TTL cache
 ```
 
-`DRILLR_API_KEY` is read only in the Node.js server data client. It is never returned by the API route, logged, embedded in HTML, or placed in a `NEXT_PUBLIC_*` variable.
+The detailed boundaries and range-query design are documented in [Architecture](docs/architecture.md).
 
 ## Validation
 
-The fixed 2026-07-13 regression fixture represents 30 structured rows collapsed into 13 filings. It covers the important grouping boundaries found during data validation:
+The fixed 2026-07-13 regression fixture represents 30 structured rows collapsed into 13 filings. It covers:
 
 - Public Storage notes offering
 - Plug Power's two property transactions in one filing
@@ -72,35 +103,37 @@ The fixed 2026-07-13 regression fixture represents 30 structured rows collapsed 
 - Braskem's Form 6-K boundary
 - the historical sparse-extraction case for TOP Financial
 
-The live upstream dataset can improve after the fixture is captured. For example, TOP's formerly missing terms are now populated; the app displays those current facts while the fixture keeps the original no-inference regression boundary.
-
-Run all checks:
+Run the full local quality suite:
 
 ```bash
 npm test
 npm run typecheck
 npm run lint
 npm run build
-```
-
-For browser-level desktop and mobile checks, start the production server on port 3100 with `DRILLR_API_KEY` configured, then run:
-
-```bash
 npm run test:e2e
 ```
+
+Playwright automatically starts fixture mode, so browser tests do not need production credentials. GitHub Actions runs the same unit, type, lint, build, browser, and CodeQL checks.
 
 ## Configuration
 
 | Variable | Required | Default | Purpose |
 |---|---:|---|---|
-| `DRILLR_API_KEY` | Yes | — | Server-side Drillr authentication |
+| `DRILLR_API_KEY` | Live mode | — | Server-side Drillr authentication |
+| `RADAR_DATA_MODE` | No | `live` | Set `fixture` for the recorded validation sample |
 | `DRILLR_API_BASE_URL` | No | `https://gateway.drillr.ai` | Drillr REST base URL |
 | `SEC_USER_AGENT` | Recommended | App identifier | Identifies SEC requests responsibly |
-| `EVENT_CACHE_TTL_SECONDS` | No | `900` | Aggregated daily result cache |
+| `EVENT_CACHE_TTL_SECONDS` | No | `900` | Aggregated date/window cache |
 | `SEC_METADATA_CACHE_TTL_SECONDS` | No | `604800` | SEC form/link metadata cache |
+
+## Contributing and security
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), browse the [roadmap](ROADMAP.md), or start with a [`good first issue`](https://github.com/huluwa2026/material-event-radar/labels/good%20first%20issue). Questions and open-ended ideas belong in [Discussions](https://github.com/huluwa2026/material-event-radar/discussions).
+
+Report vulnerabilities privately through the instructions in [SECURITY.md](SECURITY.md). Community participation follows the [Code of Conduct](CODE_OF_CONDUCT.md). Release history is in [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope
 
-This MVP intentionally does not mix news with filings, infer missing financial terms, attribute stock moves, manage portfolios, or make buy/sell recommendations.
+This project reports what a company disclosed. It does not mix news with filings, infer missing financial terms, attribute stock moves, manage portfolios, or make buy/sell recommendations.
 
-MIT licensed. Drillr supplies the structured event data; SEC.gov remains the original disclosure source.
+MIT licensed. Drillr supplies structured event data; SEC.gov remains the original disclosure source.

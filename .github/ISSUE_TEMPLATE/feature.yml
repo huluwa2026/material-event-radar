@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose an improvement that fits the factual, auditable filing workflow.
+title: "[Feature]: "
+labels: [enhancement, triage]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the user need before proposing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience
+      description: Explain the smallest useful behavior and an example workflow.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Filing aggregation and auditability
+        - Search, filters, and watchlists
+        - Feeds, exports, and API
+        - Accessibility and responsive UI
+        - Contributor experience
+        - Documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product principles
+      options:
+        - label: The proposal does not infer missing filing facts or provide investment advice.
+          required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
