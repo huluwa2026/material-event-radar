@@ -1,35 +1,44 @@
-import { isValidDate, previousCompleteWeekday } from "@/lib/date";
+import { isValidDate } from "@/lib/date";
 import { DrillrConfigurationError, DrillrRequestError } from "@/lib/drillr";
+import { isPublicDateAllowed, publicDefaultDate, publicFilingLimit } from "@/lib/public-access";
 import { filterFilings, filingsToCsv, parseFilters, parseWindow, publicRadarData } from "@/lib/public-api";
+import { checkPublicRequest } from "@/lib/public-request";
 import { getRadarWindow } from "@/lib/radar";
-import { checkRateLimit, rateLimitHeaders } from "@/lib/rate-limit";
+import { rateLimitHeaders } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function requestKey(request: NextRequest): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "anonymous";
-}
-
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const rate = checkRateLimit(requestKey(request));
+  const rate = checkPublicRequest(request);
   const rateHeaders = rateLimitHeaders(rate);
   if (!rate.allowed) {
     return NextResponse.json(
       { error: { code: "rate_limited", message: "Try again after the rate-limit window resets." } },
-      { status: 429, headers: { ...rateHeaders, "Retry-After": "60" } },
+      { status: 429, headers: { ...rateHeaders, "Retry-After": String(rate.retryAfterSeconds) } },
     );
   }
 
   const params = request.nextUrl.searchParams;
-  const date = params.get("date") || previousCompleteWeekday();
+  const date = params.get("date") || publicDefaultDate();
   const windowDays = parseWindow(params.get("window"));
   const format = params.get("format") || "json";
   if (!isValidDate(date)) {
     return NextResponse.json(
       { error: { code: "invalid_date", message: "Use an ISO filing date in YYYY-MM-DD format." } },
       { status: 400, headers: rateHeaders },
+    );
+  }
+  if (!isPublicDateAllowed(date)) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "historical_date_unavailable",
+          message: `This hosted deployment serves rolling windows ending on ${publicDefaultDate()}.`,
+        },
+      },
+      { status: 403, headers: rateHeaders },
     );
   }
   if (!windowDays) {
@@ -48,10 +57,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const filters = parseFilters(params);
     const radar = await getRadarWindow(date, windowDays);
-    const filings = filterFilings(radar.filings, filters);
+    const matchedFilings = filterFilings(radar.filings, filters);
+    const limit = publicFilingLimit();
+    const filings = matchedFilings.slice(0, limit);
     const cacheHeaders = {
       ...rateHeaders,
-      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      "Cache-Control": "public, s-maxage=900, stale-while-revalidate=3600",
     };
 
     if (format === "csv") {
@@ -73,7 +84,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           source: radar.source,
           sourceRowCount: radar.sourceRowCount,
           totalFilings: radar.filings.length,
+          matchedFilings: matchedFilings.length,
           returnedFilings: filings.length,
+          limit,
+          truncated: matchedFilings.length > filings.length,
         },
         data: publicRadarData(radar, filings),
       },
@@ -99,4 +113,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
 }
-

@@ -13,7 +13,7 @@ Browser
             ├─ filing/section aggregation
             ├─ deterministic ranking and audit explanation
             ├─ SEC link/form verification for daily views
-            └─ date/window TTL cache
+            └─ shared persistent date/window cache + in-process coalescing
 ```
 
 ## Data boundaries
@@ -37,6 +37,8 @@ The drawer exposes the numeric breakdown and reasons. The score prioritizes read
 
 `/api/events` remains the daily compatibility endpoint. `/api/v1/events` supports 1, 7, and 30 calendar-day windows. Range mode still sends four SQL requests—not four requests per day—using a bounded filing-date interval, then partitions rows by date before reusing the daily aggregator.
 
+The public hosted instance fixes the end date to the latest complete weekday. This leaves only three live cache keys (1/7/30 days) instead of allowing anonymous callers to create an unbounded series of historical keys. Next.js' persistent data cache is backed by a small in-process promise cache so separate requests can reuse results while concurrent work is coalesced. Self-hosted deployments can explicitly restore arbitrary dates with `RADAR_ALLOW_HISTORICAL_DATES=true`.
+
 Daily mode verifies SEC metadata with bounded concurrency and a long TTL. Range mode keeps SEC links but avoids fetching metadata for every historical filing; opening a daily link restores verified metadata.
 
 ## Recorded fixture mode
@@ -52,7 +54,7 @@ Daily mode verifies SEC metadata with bounded concurrency and a long TTL. Range 
 | `/feed.xml` | Filterable RSS 2.0 feed |
 | `/api/health` | Secret-free deployment readiness |
 
-The versioned API applies a best-effort per-instance request limit and emits standard rate-limit headers. Vercel/serverless instances do not share memory, so production abuse protection should move to an edge or durable store if traffic requires a globally strict quota.
+All data-bearing routes apply the same minute and daily best-effort request budgets and emit rate-limit headers. Each server-function instance maintains its own counter; strict global quotas still require an edge or durable counter. Upstream-cost exposure is bounded separately by the hosted date policy and persistent three-window cache.
 
 ## Security
 
@@ -61,3 +63,6 @@ The versioned API applies a best-effort per-instance request limit and emits sta
 - Public exports contain normalized filing facts, audit metadata, and SEC links only.
 - GitHub secret scanning, push protection, dependency alerts, CodeQL, CI, and protected-main rules form the repository safety boundary.
 
+## Independence
+
+Material Event Radar is an independent open-source project. Drillr is the configured structured-data access path, and SEC.gov is the original filing source. The project is not affiliated with or endorsed by Drillr.

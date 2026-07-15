@@ -1,6 +1,9 @@
-import { isValidDate, previousCompleteWeekday } from "@/lib/date";
+import { isValidDate } from "@/lib/date";
+import { isPublicDateAllowed, publicDefaultDate, publicRssItemLimit } from "@/lib/public-access";
 import { filterFilings, parseFilters, parseWindow } from "@/lib/public-api";
+import { checkPublicRequest } from "@/lib/public-request";
 import { getRadarWindow } from "@/lib/radar";
+import { rateLimitHeaders } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -16,16 +19,31 @@ function xml(value: string): string {
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const rate = checkPublicRequest(request);
+  const rateHeaders = rateLimitHeaders(rate);
+  if (!rate.allowed) {
+    return new NextResponse("Rate limit exceeded.", {
+      status: 429,
+      headers: { ...rateHeaders, "Retry-After": String(rate.retryAfterSeconds) },
+    });
+  }
+
   const params = request.nextUrl.searchParams;
-  const date = params.get("date") || previousCompleteWeekday();
+  const date = params.get("date") || publicDefaultDate();
   const windowDays = parseWindow(params.get("window") || "7");
   if (!isValidDate(date) || !windowDays) {
-    return new NextResponse("Invalid date or window.", { status: 400 });
+    return new NextResponse("Invalid date or window.", { status: 400, headers: rateHeaders });
+  }
+  if (!isPublicDateAllowed(date)) {
+    return new NextResponse(
+      `This hosted deployment serves rolling windows ending on ${publicDefaultDate()}.`,
+      { status: 403, headers: rateHeaders },
+    );
   }
 
   const radar = await getRadarWindow(date, windowDays);
   const filters = parseFilters(params);
-  const filings = filterFilings(radar.filings, filters);
+  const filings = filterFilings(radar.filings, filters).slice(0, publicRssItemLimit());
   const origin = request.nextUrl.origin;
   const feedUrl = `${origin}/feed.xml?${params.toString()}`;
   const items = filings.map((filing) => {
@@ -57,9 +75,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   return new NextResponse(body, {
     headers: {
+      ...rateHeaders,
       "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=900",
+      "Cache-Control": "public, s-maxage=900, stale-while-revalidate=3600",
     },
   });
 }
-

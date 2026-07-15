@@ -1,5 +1,6 @@
 import { RadarApp } from "@/components/radar-app";
-import { isValidDate, previousCompleteWeekday } from "@/lib/date";
+import { isValidDate } from "@/lib/date";
+import { historicalDatesEnabled, normalizePublicPageDate } from "@/lib/public-access";
 import { EVENT_CATEGORIES } from "@/lib/types";
 import type { Completeness, EventCategory } from "@/lib/types";
 
@@ -11,7 +12,7 @@ export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
   const requestedDate = typeof params.date === "string" ? params.date : null;
   const requestedFiling = typeof params.filing === "string" ? params.filing : null;
-  const initialDate = isValidDate(requestedDate) ? requestedDate : previousCompleteWeekday();
+  const initialDate = normalizePublicPageDate(isValidDate(requestedDate) ? requestedDate : null);
   const requestedCategory = typeof params.category === "string" ? params.category : "all";
   const requestedCompleteness = typeof params.completeness === "string" ? params.completeness : "all";
   const requestedWindow = Number(typeof params.window === "string" ? params.window : "1");
@@ -19,6 +20,7 @@ export default async function Home({ searchParams }: PageProps) {
   return (
     <RadarApp
       initialDate={initialDate}
+      allowDateNavigation={historicalDatesEnabled()}
       initialFiling={requestedFiling}
       initialQuery={typeof params.q === "string" ? params.q.slice(0, 100) : ""}
       initialCategory={EVENT_CATEGORIES.includes(requestedCategory as EventCategory) ? requestedCategory as EventCategory : "all"}
