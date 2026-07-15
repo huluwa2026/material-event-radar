@@ -1,0 +1,8 @@
+{
+  "id": "fixture-filing-date-2",
+  "title": "Second recorded filing-date fixture",
+  "filingDate": "2024-11-15",
+  "recordedAt": "2024-11-16T09:30:00Z",
+  "source": "regression-fixture",
+  "notes": "Second fixture for filing-date parsing regressions (issue #2)."
+}
