@@ -104,6 +104,10 @@ Browser
 
 The hosted routes apply conservative request budgets and reuse a persistent date/window cache. The detailed boundaries and range-query design are documented in [Architecture](docs/architecture.md).
 
+## Privacy
+
+The hosted site uses Vercel Web Analytics for anonymous, aggregate page views and referrers. It does not use analytics cookies or custom interaction events. Query strings and URL fragments are removed before an event is sent, so searches, tickers, watchlists, filters, and selected filings are not included in analytics.
+
 ## Validation
 
 The fixed 2026-07-13 regression fixture represents 30 structured rows collapsed into 13 filings. It covers:
