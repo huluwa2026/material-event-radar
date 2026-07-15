@@ -2,7 +2,7 @@
   "name": "material-event-radar",
   "version": "0.1.0",
   "private": true,
-  "description": "An auditable daily radar for material company events disclosed in SEC filings.",
+  "description": "Open-source SEC filing monitor for auditable 8-K and 6-K material events, with JSON, CSV, and RSS outputs.",
   "scripts": {
     "dev": "next dev",
     "dev:fixture": "RADAR_DATA_MODE=fixture next dev",

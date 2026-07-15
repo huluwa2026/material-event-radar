@@ -20,3 +20,7 @@ jobs:
       - name: Check application shell
         run: curl --fail --show-error --silent --retry 3 --retry-all-errors https://material-event-radar.vercel.app/ | grep -q "Material Event Radar"
 
+      - name: Check search discovery files
+        run: |
+          curl --fail --show-error --silent --retry 3 --retry-all-errors https://material-event-radar.vercel.app/robots.txt | grep -q "sitemap.xml"
+          curl --fail --show-error --silent --retry 3 --retry-all-errors https://material-event-radar.vercel.app/sitemap.xml | grep -q "material-event-radar.vercel.app"

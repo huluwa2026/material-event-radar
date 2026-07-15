@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>Material Event Radar</h1>
+  <h1>Material Event Radar — Open-source SEC Filing Monitor</h1>
 
   <p>
     <a href="https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/huluwa2026/material-event-radar/actions/workflows/ci.yml/badge.svg"></a>
@@ -9,7 +9,7 @@
   </p>
 
   <p><strong>See what companies disclosed—not why prices moved.</strong></p>
-  <p>Material Event Radar groups structured company events by SEC filing, ranks them transparently, and always links back to the original disclosure.</p>
+  <p>An open-source monitor for material company events disclosed in SEC filings, including Forms 8-K and 6-K. Material Event Radar groups structured events by filing, ranks them transparently, and always links back to the original SEC disclosure.</p>
   <p><em>An independent open-source project, not an official Drillr product.</em></p>
 
   <p>
@@ -29,6 +29,10 @@
 - **Honest about gaps:** sparse extraction is hidden by default and missing terms are never inferred.
 - **Built for scanning:** daily and 7/30-day timelines, shareable filters, local watchlists, and responsive filing dossiers.
 - **Open data surfaces:** filtered JSON, CSV, and RSS use the same factual aggregation model as the interface.
+
+## What it monitors
+
+Material Event Radar turns structured SEC filing data into a daily, auditable view of company disclosures. It currently covers acquisitions and other deals, executive departures and appointments, debt issuance, and securities offerings. Results preserve the SEC accession number and original disclosure link so every summary can be checked against its source.
 
 ### Filing audit view
 
@@ -63,13 +67,13 @@ Create a [Drillr API key](https://drillr.ai/developer/keys). `DRILLR_API_KEY` is
 
 The public hosted instance serves rolling 1/7/30-day windows ending on the latest complete weekday. A self-hosted instance can opt into arbitrary historical dates by setting `RADAR_ALLOW_HISTORICAL_DATES=true`; those requests use that deployment's own server-side key.
 
-## Product capabilities
+## SEC filing monitor capabilities
 
 - Queries `company_deal_events`, `executive_change`, `debt_issuance`, and `securities_offering` in four parallel requests.
 - Excludes synthetic `news_*` accessions and joins company identity inside the queries.
 - Merges complementary deals, debt, offerings, departures, and appointments without discarding distinct events.
 - Supports 1, 7, and 30 calendar-day views with one bounded range query per source table.
-- Persists ticker watchlists only in browser local storage; no account or tracking is required.
+- Persists ticker watchlists only in browser local storage; no account is required and watchlists never leave the browser.
 - Keeps search, category, form, completeness, window, watchlist mode, and open filing in shareable URLs.
 - Provides deterministic importance-score explanations and per-section source-table provenance.
 - Displays source mode, refresh time, row counts, extraction completeness, and SEC verification state.
