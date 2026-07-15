@@ -1,5 +1,27 @@
 import { expect, test } from "@playwright/test";
 
+test("search metadata, structured data, robots, and sitemap are public", async ({ page, request }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveTitle("Material Event Radar — Auditable SEC Filing Monitor");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /8-K and 6-K/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://material-event-radar.vercel.app");
+  await expect(page.locator('link[type="application/rss+xml"]')).toHaveAttribute("href", "https://material-event-radar.vercel.app/feed.xml");
+  await expect(page.locator('link[rel="icon"]')).toHaveAttribute("href", /icon\.svg/);
+
+  const structuredData = JSON.parse(await page.locator('script[type="application/ld+json"]').textContent() ?? "{}");
+  expect(structuredData["@graph"].map((entry: { "@type": string }) => entry["@type"]))
+    .toEqual(["WebSite", "SoftwareApplication"]);
+
+  const robots = await request.get("/robots.txt");
+  expect(robots.ok()).toBe(true);
+  expect(await robots.text()).toContain("Sitemap: https://material-event-radar.vercel.app/sitemap.xml");
+
+  const sitemap = await request.get("/sitemap.xml");
+  expect(sitemap.ok()).toBe(true);
+  expect(await sitemap.text()).toContain("<loc>https://material-event-radar.vercel.app</loc>");
+});
+
 test("desktop radar loads real filings and opens grouped details", async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on("console", (message) => {
