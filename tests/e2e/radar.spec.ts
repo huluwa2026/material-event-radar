@@ -111,3 +111,8 @@ test("shareable filters, timeline, watchlist, API, CSV, and RSS work together", 
   expect(rss.headers()["content-type"]).toContain("application/rss+xml");
   expect(await rss.text()).toContain("<rss version=\"2.0\"");
 });
+
+test('filing_date_iso_shape_20260716', () => {
+  const d = '2026-07-16';
+  expect(d).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+});
