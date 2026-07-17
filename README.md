@@ -16,7 +16,8 @@
     <a href="https://material-event-radar.vercel.app">Open the live radar</a> ·
     <a href="https://material-event-radar.vercel.app/api/v1/events">JSON API</a> ·
     <a href="https://material-event-radar.vercel.app/feed.xml">RSS feed</a> ·
-    <a href="docs/architecture.md">Architecture</a>
+    <a href="docs/architecture.md">Architecture</a> ·
+    <a href="https://drillr.ai/l/material-radar-gh">Build with Drillr</a>
   </p>
 </div>
 
@@ -63,7 +64,7 @@ DRILLR_API_KEY=drl_replace_me
 SEC_USER_AGENT=material-event-radar/0.1 your-email@example.com
 ```
 
-Create a [Drillr API key](https://drillr.ai/developer/keys). `DRILLR_API_KEY` is read only by the Node.js server; it is never returned by an API route, logged, embedded in HTML, or placed in a `NEXT_PUBLIC_*` variable.
+Create a [Drillr API key](https://drillr.ai/l/material-radar-gh). `DRILLR_API_KEY` is read only by the Node.js server; it is never returned by an API route, logged, embedded in HTML, or placed in a `NEXT_PUBLIC_*` variable.
 
 The public hosted instance serves rolling 1/7/30-day windows ending on the latest complete weekday. A self-hosted instance can opt into arbitrary historical dates by setting `RADAR_ALLOW_HISTORICAL_DATES=true`; those requests use that deployment's own server-side key.
 
@@ -110,7 +111,7 @@ The hosted routes apply conservative request budgets and reuse a persistent date
 
 ## Privacy
 
-The hosted site uses Vercel Web Analytics for anonymous, aggregate page views and referrers. It does not use analytics cookies or custom interaction events. Query strings and URL fragments are removed before an event is sent, so searches, tickers, watchlists, filters, and selected filings are not included in analytics.
+The hosted site uses Vercel Web Analytics for anonymous, aggregate page views and referrers. It does not use analytics cookies or custom interaction events. Query strings and URL fragments are removed before an event is sent, so searches, tickers, watchlists, filters, and selected filings are not included in analytics. Outbound Drillr links use readable branded short links; Drillr records the project source after a click without exposing UTM parameters in the browser address bar.
 
 ## Validation
 
