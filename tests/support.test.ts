@@ -133,6 +133,16 @@ describe("public request budget", () => {
   });
 });
 
+describe("Drillr project attribution", () => {
+  it("sends a stable project header without exposing the API key to the browser", async () => {
+    const source = await import("node:fs/promises").then(({ readFile }) =>
+      readFile(new URL("../lib/drillr.ts", import.meta.url), "utf8"),
+    );
+    expect(source).toContain('"X-Drillr-Via": "material-event-radar"');
+    expect(source).toContain("process.env.DRILLR_API_KEY");
+  });
+});
+
 describe("public API helpers", () => {
   const radar = aggregateEventRows(validationRows, "2026-07-13", "fixture");
 

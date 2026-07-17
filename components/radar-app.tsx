@@ -203,7 +203,7 @@ export function RadarApp({
             {radar?.source.mode === "fixture" ? (
               <span>recorded fixture</span>
             ) : (
-              <a href="https://drillr.ai" target="_blank" rel="noreferrer">via Drillr</a>
+              <a href="https://drillr.ai/l/material-radar-app" target="_blank" rel="noreferrer">build with Drillr</a>
             )}
           </div>
         </div>
@@ -299,7 +299,7 @@ export function RadarApp({
         </section>
 
         <footer className="page-footer">
-          <p>Independent open-source project using structured data accessed through Drillr and linked to original SEC filings.</p>
+          <p>Independent open-source project using structured data accessed through Drillr and linked to original SEC filings. <a href="https://drillr.ai/l/material-radar-app" target="_blank" rel="noreferrer">Build your own radar</a>.</p>
           <p>Not affiliated with or endorsed by Drillr. No investment advice. Missing terms are never inferred.</p>
         </footer>
       </div>

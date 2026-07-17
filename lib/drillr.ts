@@ -76,6 +76,7 @@ async function runSql(
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
+      "X-Drillr-Via": "material-event-radar",
       "Content-Type": "application/json",
       Accept: "application/json",
     },

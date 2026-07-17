@@ -192,6 +192,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 
 .page-footer { display: flex; justify-content: space-between; gap: 30px; padding-top: 25px; border-top: 3px solid var(--navy); color: var(--muted); font-size: 10px; line-height: 1.5; }
 .page-footer p { margin: 0; }
+.page-footer a { color: var(--navy); font-weight: 750; text-underline-offset: 2px; }
 
 .drawer-shell { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: flex-end; background: rgba(5, 15, 21, .55); backdrop-filter: blur(2px); animation: fade-in .15s ease-out; }
 .filing-drawer { width: min(690px, 92vw); height: 100%; overflow: auto; background: var(--surface); box-shadow: -18px 0 48px rgba(4, 13, 18, .24); animation: drawer-in .22s ease-out; }
