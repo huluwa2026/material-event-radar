@@ -62,6 +62,7 @@ export function RadarApp({
   const [watchlistOnly, setWatchlistOnly] = useState(initialWatchlistOnly);
   const [selected, setSelected] = useState<MaterialFiling | null>(null);
   const initialSelectionHandled = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
@@ -187,6 +188,113 @@ export function RadarApp({
     setSelected(null);
   }, []);
 
+  
+  const moveToPreviousVisibleFiling = useCallback(() => {
+    if (!selected || filtered.length === 0) return;
+  
+    const currentIndex = filtered.findIndex(
+      (filing) => filing.accession === selected.accession
+    );
+  
+    if (currentIndex > 0) {
+      setSelected(filtered[currentIndex - 1]);
+    }
+  }, [filtered, selected]);
+
+  const moveToNextVisibleFiling = useCallback(() => {
+    if (!selected || filtered.length === 0) return;
+  
+    const currentIndex = filtered.findIndex(
+      (filing) => filing.accession === selected.accession
+    );
+  
+    if (currentIndex >= 0 && currentIndex < filtered.length - 1) {
+      setSelected(filtered[currentIndex + 1]);
+    }
+  }, [filtered, selected]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+
+      const isTyping =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+
+      const modifierPressed = event.ctrlKey || event.metaKey;
+
+      // Focus the search field with Ctrl/Cmd + K
+      if (modifierPressed && event.code === "KeyK") {
+        event.preventDefault();
+
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+
+      // Close filing drawer with Escape
+      if (event.key === "Escape") {
+        if (document.activeElement === searchInputRef.current) {
+            event.preventDefault();
+            searchInputRef.current?.blur();
+            return;
+        }
+    
+        if (selected) {
+            event.preventDefault();
+            closeFiling();
+            return;
+        }
+      }
+
+      // Ignore shortcuts while typing
+      if (isTyping) {
+        return;
+      }
+
+      // Moving to previous visible filing with Ctrl/Cmd + ArrowUp
+      if (modifierPressed && event.key === "ArrowUp") {
+        event.preventDefault();
+        moveToPreviousVisibleFiling();
+        return;
+      }
+
+      // Moving to next visible filing with Ctrl/Cmd + ArrowDown
+      if (modifierPressed && event.key === "ArrowDown") {
+        event.preventDefault();
+        moveToNextVisibleFiling();
+        return;
+      }
+
+      // Open filing details with O
+      if (event.key.toLowerCase() === "o") {
+        event.preventDefault();
+
+        const filing = selected ?? filtered[0];
+
+        if (filing) {
+          openFiling(filing);
+        }
+
+        return;
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [
+    moveToPreviousVisibleFiling, 
+    moveToNextVisibleFiling, 
+    filtered, 
+    selected, 
+    openFiling, 
+    closeFiling
+  ]);
+
   return (
     <main className="app-shell">
       <header className="masthead">
@@ -267,7 +375,7 @@ export function RadarApp({
         <section className="filter-bar" aria-label="Event filters">
           <label className="search-field">
             <Search size={17} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticker or company" aria-label="Search ticker or company" />
+            <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ticker or company" aria-label="Search ticker or company" />
           </label>
           <div className="select-field"><Filter size={15} /><select value={category} onChange={(event) => setCategory(event.target.value as CategoryFilter)} aria-label="Filter by event category"><option value="all">All event types</option><option value="deal">Deals</option><option value="executive">Leadership</option><option value="debt">Debt</option><option value="offering">Offerings</option></select></div>
           <div className="select-field"><select value={formType} onChange={(event) => setFormType(event.target.value)} aria-label="Filter by form type"><option value="all">All forms</option>{forms.map((form) => <option key={form} value={form}>{form}</option>)}</select></div>
@@ -283,6 +391,17 @@ export function RadarApp({
           <a href={`/feed.xml?${exportParams}`} target="_blank" rel="noreferrer"><Radio size={14} /> RSS</a>
           <span>Filters are included in every export link.</span>
         </nav>
+
+        <div
+          className="shortcut-reference"
+          aria-label="Keyboard shortcuts"
+        >
+          <span><kbd>Ctrl</kbd> + <kbd>K</kbd> Search</span>
+          <span><kbd>Ctrl</kbd> + <kbd>↑</kbd> Previous</span>
+          <span><kbd>Ctrl</kbd> + <kbd>↓</kbd> Next</span>
+          <span><kbd>O</kbd> Details</span>
+          <span><kbd>Esc</kbd> Close</span>
+        </div>
 
         <section className="event-list" aria-live="polite" aria-busy={loading}>
           {loading && <LoadingRows />}

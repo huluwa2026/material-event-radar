@@ -5,7 +5,7 @@
   "description": "Open-source SEC filing monitor for auditable 8-K and 6-K material events, with JSON, CSV, and RSS outputs.",
   "scripts": {
     "dev": "next dev",
-    "dev:fixture": "RADAR_DATA_MODE=fixture next dev",
+    "dev:fixture": "cross-env RADAR_DATA_MODE=fixture next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -29,6 +29,7 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "cross-env": "^10.1.0",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "typescript": "latest",
