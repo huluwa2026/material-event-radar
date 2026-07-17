@@ -50,7 +50,7 @@ npm run dev:fixture
 
 Open [http://localhost:3000/?date=2026-07-13](http://localhost:3000/?date=2026-07-13). Fixture mode uses the real recorded July 13, 2026 validation sample and labels it clearly as historical data. It never pretends to be live.
 
-## Run with live Drillr data
+## Run with live [Drillr data](https://drillr.ai/l/material-radar-gh)
 
 ```bash
 cp .env.example .env.local
