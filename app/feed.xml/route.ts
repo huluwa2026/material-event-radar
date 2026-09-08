@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// 默认窗口是 7 天,拉满一周的 filing 会超过平台默认的 10 秒函数超时,
-// 直接访问 /feed.xml 必然 500(window=1 只要 0.5s,window=7 卡在 10.8s)。
+// 本项目部署在 Hobby 计划上,函数执行硬上限 10 秒,`maxDuration` 在这里不生效
+// (试过 60,线上仍在 11 秒被杀)。所以只能让默认查询本身跑得进 10 秒。
 export const maxDuration = 60;
 
 function xml(value: string): string {
@@ -33,7 +33,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const params = request.nextUrl.searchParams;
   const date = params.get("date") || publicDefaultDate();
-  const windowDays = parseWindow(params.get("window") || "7");
+  // 默认窗口曾经是 7 天,而 7 天的冷查询要 10.9 秒,超过平台上限 ——
+  // 直接访问 /feed.xml 必然 500 空 body。改为默认 1 天(0.6 秒),
+  // ?window=7 / 30 仍可显式指定(30 天反而更快,因为它有缓存)。
+  const windowDays = parseWindow(params.get("window"));
   if (!isValidDate(date) || !windowDays) {
     return new NextResponse("Invalid date or window.", { status: 400, headers: rateHeaders });
   }
