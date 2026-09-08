@@ -1,5 +1,6 @@
 import type { CategorizedRows, EventCategory, RawRow } from "@/lib/types";
 import { validationRows } from "@/tests/fixtures/validation-2026-07-13";
+import { blobBudgetConfigured, reserveViaBlob } from "@/lib/blob-budget";
 
 const DEFAULT_BASE_URL = "https://gateway.drillr.ai";
 export const RECORDED_FIXTURE_DATE = "2026-07-13";
@@ -22,6 +23,17 @@ export class DrillrRequestError extends Error {
   ) {
     super(message);
     this.name = "DrillrRequestError";
+  }
+}
+
+/**
+ * 当天打到 Drillr 的调用次数已达上限。
+ * 继承 DrillrRequestError,好让现有路由的错误分支直接接住它。
+ */
+export class DailyBudgetExceededError extends DrillrRequestError {
+  constructor(used: number, limit: number) {
+    super(`Daily Drillr call budget exhausted (${used}/${limit}).`, 429);
+    this.name = "DailyBudgetExceededError";
   }
 }
 
@@ -62,6 +74,36 @@ export function tabularRowsToObjects(columns: string[], rows: unknown[][]): RawR
   );
 }
 
+function dailyCallLimit(): number {
+  const parsed = Number.parseInt(process.env.RADAR_DAILY_DRILLR_CALL_LIMIT ?? "600", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 600;
+}
+
+/**
+ * 每次真正打 Drillr 之前先预留一次额度。
+ *
+ * 前面那道限流是按 IP 记在进程内存里的,换 IP 或换实例就重新计数,
+ * 挡不住分散的请求。这里用 Blob 做跨实例的硬上限:不管什么绕过了限流,
+ * 当天的上游调用次数都封顶。
+ *
+ * Blob 本身出问题时放行并记日志 —— 计数器读不出来不该让站点停摆。
+ */
+async function reserveDailyCall(category: EventCategory): Promise<void> {
+  if (!blobBudgetConfigured()) return;
+  const dayKey = new Date().toISOString().slice(0, 10);
+  const limit = dailyCallLimit();
+  try {
+    const result = await reserveViaBlob(dayKey, category, limit, limit);
+    if (!result.allowed) throw new DailyBudgetExceededError(result.totalUsed, limit);
+  } catch (error) {
+    if (error instanceof DailyBudgetExceededError) throw error;
+    console.warn(
+      "[radar-budget] blob reservation failed, allowing the call: %s",
+      error instanceof Error ? error.message : String(error),
+    );
+  }
+}
+
 async function runSql(
   category: EventCategory,
   fromDate: string,
@@ -70,6 +112,8 @@ async function runSql(
 ): Promise<RawRow[]> {
   const apiKey = process.env.DRILLR_API_KEY;
   if (!apiKey) throw new DrillrConfigurationError();
+
+  await reserveDailyCall(category);
 
   const baseUrl = (process.env.DRILLR_API_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/api/v1/data/run_sql`, {

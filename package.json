@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.8.0",
     "htmlparser2": "10.0.0",
     "lucide-react": "^1.24.0",
     "next": "latest",
