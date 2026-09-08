@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// 默认窗口是 7 天,拉满一周的 filing 会超过平台默认的 10 秒函数超时,
+// 直接访问 /feed.xml 必然 500(window=1 只要 0.5s,window=7 卡在 10.8s)。
+export const maxDuration = 60;
 
 function xml(value: string): string {
   return value
