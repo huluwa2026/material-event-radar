@@ -40,6 +40,14 @@ npm run lint
 npm run build
 ```
 
+Browser / accessibility checks (fixture mode, no production credentials):
+
+```bash
+npm run test:e2e
+```
+
+This runs the Playwright suite, including axe-core scans of the daily list and an open filing drawer (`tests/e2e/a11y.spec.ts`). Critical and serious WCAG violations fail the run; fix them or document intentional exceptions in the PR.
+
 Changes to aggregation boundaries should add or update a deterministic fixture test. UI changes should include a browser-level check and, when useful, a screenshot.
 
 ## Pull requests

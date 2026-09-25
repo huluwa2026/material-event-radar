@@ -1,7 +1,7 @@
 :root {
   --ink: #101b24;
   --ink-2: #34434d;
-  --muted: #6f7b82;
+  --muted: #59656c;
   --paper: #f3f2ed;
   --surface: #fafaf7;
   --line: #d4d7d3;
@@ -14,7 +14,7 @@
   --debt: #197a77;
   --offering: #a47221;
   --success: #39785c;
-  --warning: #b16824;
+  --warning: #8a4f1a;
   --danger: #b54736;
 }
 
